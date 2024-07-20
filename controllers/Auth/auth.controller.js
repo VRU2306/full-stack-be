@@ -19,12 +19,6 @@ const googleRegister = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    const { email, password } = req.body;
-    if (!(email && password)) {
-        return res
-            .status(400)
-            .send({ errMessage: "Please fill out the form correctly!" });
-    }
     try {
         await authService.login(req, res)
     } catch (error) {

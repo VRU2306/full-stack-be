@@ -110,9 +110,13 @@ const googleRegister = async (req, res) => {
 };
 const login = async (req, res) => {
     try {
-        console.log(req.body, 96)
-        const reqbody = req.body;
-        const user = await User.findOne({ email: reqbody.email });
+        const { email, password, name } = req.body;
+        if (!(email && (password || name))) {
+            return res
+                .status(400)
+                .send({ errMessage: "Please fill out the form correctly!" });
+        }
+        const user = await User.findOne({ email: email });
         if (!user) {
             return res.status(400).send({ errMessage: "No user found with this email" });
         }
