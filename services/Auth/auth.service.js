@@ -40,6 +40,7 @@ const register = async (req, res) => {
             firstName: newUser.firstName,
             expiresIn: config.expiresIn,
             lastName: newUser.lastName,
+            googleSignedInUser: false
         };
         return res.status(201).send(responseUser);
     } catch (err) {
@@ -65,6 +66,7 @@ const googleRegister = async (req, res) => {
                     name: user.name,
                     firstName: user.firstName,
                     lastName: user.lastName,
+                    googleSignedInUser: true
                 };
                 return res.status(200).send(responseUser);
             } else {
@@ -92,6 +94,7 @@ const googleRegister = async (req, res) => {
                 name: newUser.name,
                 firstName: newUser.firstName,
                 lastName: newUser.lastName,
+                googleSignedInUser: newUser.googleSignedInUser
             };
             return res.status(201).send(responseUser);
         }
@@ -103,9 +106,13 @@ const googleRegister = async (req, res) => {
 const login = async (req, res) => {
     try {
         validateLoginData(req.body);
+        const { email } = req.body;
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).send({ errorMsg: "No user found with this email" });
+        }
+        if (user.googleSignedInUser === true) {
+            return res.status(400).send({ errorMsg: "You have signed up using different method!" });
         }
 
         if (user.password && user.googleSignedInUser === false) {
@@ -125,6 +132,7 @@ const login = async (req, res) => {
             name: user.firstName + " " + user.lastName,
             firstName: user.firstName,
             lastName: user.lastName,
+            googleSignedInUser: user.googleSignedInUser
         };
 
         return res.status(200).send(responseUser);

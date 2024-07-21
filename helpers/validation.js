@@ -13,8 +13,9 @@ const validateGoogleRegistrationData = (data) => {
 };
 
 const validateLoginData = (data) => {
-    const { email, password } = data;
-    if (!email || (!password && !data.name)) {
+    console.log(data, 16)
+    const { email, password, name } = data;
+    if (!email || (!password && !name)) {
         throw new Error("Please fill out the form correctly!");
     }
 };
