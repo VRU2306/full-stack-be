@@ -1,20 +1,17 @@
-const User = require("../../models/User/user")
+const User = require("../../models/User/user");
 const bcrypt = require('bcryptjs');
 const auth = require("../../middleware/auth");
 const config = require("../../config");
+const { validateRegistrationData, validateGoogleRegistrationData, validateLoginData } = require("../../helpers/validation");
 
 const register = async (req, res) => {
     try {
         const { email, password, firstName, lastName } = req.body;
-        if (!(firstName && lastName && email && password)) {
-            return res
-                .status(400)
-                .send({ errMessage: "Please fill out the form correctly!" });
-        }
+        validateRegistrationData(req.body);
+
         const user = await User.findOne({ email });
-        console.log(user, 10)
         if (user) {
-            return res.status(400).send({ errMessage: "An account with that email already exists!" });
+            return res.status(400).send({ errorMsg: "An account with that email already exists!" });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -31,9 +28,7 @@ const register = async (req, res) => {
             googleSignedInUser: false
         });
 
-
         await newUser.save();
-
 
         const token = await auth.generateToken(newUser._id, userName);
         const responseUser = {
@@ -49,21 +44,18 @@ const register = async (req, res) => {
         return res.status(201).send(responseUser);
     } catch (err) {
         console.error(err);
-        return res.status(500).send({ errMessage: "Something went wrong" });
+        return res.status(500).send({ errorMsg: "Something went wrong" });
     }
 };
-
-
 const googleRegister = async (req, res) => {
     try {
+        validateGoogleRegistrationData(req.body);
+
         const { name, email } = req.body;
-        if (!(name && email)) {
-            return res.status(400).send({ errMessage: "Please fill out the form correctly!" });
-        }
         const user = await User.findOne({ email });
         if (user) {
             if (user.googleSignedInUser === true) {
-                const token = await auth.generateToken(user.email, user.username);
+                const token = await auth.generateToken(user._id, user.username);
                 const responseUser = {
                     token,
                     id: user._id,
@@ -76,7 +68,7 @@ const googleRegister = async (req, res) => {
                 };
                 return res.status(200).send(responseUser);
             } else {
-                return res.status(400).send({ errMessage: "An account with that email already exists!" });
+                return res.status(400).send({ errorMsg: "An account with that email already exists!" });
             }
         } else {
             const userName = Date.now().toString(36).toUpperCase();
@@ -105,34 +97,27 @@ const googleRegister = async (req, res) => {
         }
     } catch (err) {
         console.error(err);
-        return res.status(500).send({ errMessage: "Something went wrong" });
+        return res.status(500).send({ errorMsg: "Something went wrong" });
     }
 };
 const login = async (req, res) => {
     try {
-        const { email, password, name } = req.body;
-        if (!(email && (password || name))) {
-            return res
-                .status(400)
-                .send({ errMessage: "Please fill out the form correctly!" });
-        }
-        const user = await User.findOne({ email: email });
+        validateLoginData(req.body);
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).send({ errMessage: "No user found with this email" });
+            return res.status(400).send({ errorMsg: "No user found with this email" });
         }
 
         if (user.password && user.googleSignedInUser === false) {
-
-            const isMatch = await bcrypt.compare(reqbody.password, user.password);
+            const isMatch = await bcrypt.compare(req.body.password, user.password);
             if (!isMatch) {
-                return res.status(400).send({ errMessage: "Invalid login credentials!" });
+                return res.status(400).send({ errorMsg: "Invalid login credentials!" });
             }
-
         }
-        const token = auth.generateToken(user.email, user.username);
 
+        const token = auth.generateToken(user.email, user.username);
         const responseUser = {
-            token: token,
+            token,
             id: user._id,
             email: user.email,
             expiresIn: config.expiresIn,
@@ -144,7 +129,8 @@ const login = async (req, res) => {
 
         return res.status(200).send(responseUser);
     } catch (error) {
-        return res.status(500).send({ errMessage: "Internal Server Error" });
+        console.error(error);
+        return res.status(500).send({ errorMsg: "Internal Server Error" });
     }
 };
 
@@ -152,4 +138,4 @@ module.exports = {
     register,
     googleRegister,
     login
-}
+};
